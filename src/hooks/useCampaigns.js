@@ -15,6 +15,11 @@ export const useCampaign = (id) => {
     queryKey: ['campaign', id],
     queryFn: () => campaignService.getCampaign(id),
     enabled: !!id,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    cacheTime: 1000 * 60 * 15, // 15 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   })
 }
 

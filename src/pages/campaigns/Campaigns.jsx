@@ -13,7 +13,9 @@ import {
   Phone,
   Globe,
   FileText,
-  Loader2
+  Loader2,
+  Trash2,
+  Edit
 } from 'lucide-react'
 import { useCampaigns, useDeleteCampaign } from '@/hooks/useCampaigns'
 import toast from 'react-hot-toast'
@@ -251,8 +253,13 @@ export default function Campaigns() {
             </div>
           ) : (
             filteredCampaigns.map((campaign) => {
-              // Backend uses 'channel' field, not 'source_type'
-              const SourceIcon = sourceIcons[campaign.channel] || FileText // Default icon if not found
+              // Handle both new channels array and legacy channel field
+              const channels = Array.isArray(campaign.channels) 
+                ? campaign.channels 
+                : (campaign.channel ? [campaign.channel] : [])
+              
+              const primaryChannel = channels[0] || 'Manual'
+              const SourceIcon = sourceIcons[primaryChannel] || FileText
               const budgetPercent = campaign.budget ? ((campaign.spend || 0) / campaign.budget) * 100 : 0
               const conversionRate = campaign.lead_count ? (((campaign.converted_count || 0) / campaign.lead_count) * 100).toFixed(1) : '0.0'
           
@@ -266,11 +273,16 @@ export default function Campaigns() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <h3 className="font-semibold text-slate-900 mb-2">{campaign.name}</h3>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex items-center gap-1 text-sm text-slate-600">
                       <SourceIcon className="w-4 h-4" />
-                      <span>{campaign.channel || 'N/A'}</span>
+                      <span>{primaryChannel}</span>
                     </div>
+                    {channels.length > 1 && (
+                      <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                        +{channels.length - 1} more
+                      </span>
+                    )}
                     <span 
                       className={`text-xs px-2 py-1 rounded-lg border capitalize ${statusStyles[campaign.status]}`}
                     >
@@ -278,42 +290,28 @@ export default function Campaigns() {
                     </span>
                   </div>
                 </div>
-                <div className="relative">
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
-                      setOpenDropdownId(openDropdownId === campaign.id ? null : campaign.id)
+                      navigate(`/dashboard/campaigns/${campaign.id}/edit`)
                     }}
-                    className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600"
+                    title="Edit Campaign"
                   >
-                    <MoreVertical className="w-5 h-5 text-slate-400" />
+                    <Edit className="w-4 h-4" />
                   </button>
-                  {/* Dropdown Menu */}
-                  {openDropdownId === campaign.id && (
-                    <div className="absolute right-0 top-8 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setOpenDropdownId(null)
-                          navigate(`/dashboard/campaigns/${campaign.id}/edit`)
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                      >
-                        Edit Campaign
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setOpenDropdownId(null)
-                          handleDelete(campaign.id, campaign.name)
-                        }}
-                        disabled={isDeleting}
-                        className="w-full px-4 py-2 text-left text-sm text-danger-600 hover:bg-danger-50 transition-colors disabled:opacity-50"
-                      >
-                        {isDeleting ? 'Deleting...' : 'Delete Campaign'}
-                      </button>
-                    </div>
-                  )}
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDelete(campaign.id, campaign.name)
+                    }}
+                    disabled={isDeleting}
+                    className="p-2 hover:bg-danger-50 rounded-lg transition-colors text-danger-600 disabled:opacity-50"
+                    title="Delete Campaign"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
               

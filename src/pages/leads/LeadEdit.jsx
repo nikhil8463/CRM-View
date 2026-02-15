@@ -23,6 +23,7 @@ import { campaignService } from '../../services/campaignService';
 import { useLead } from '../../hooks/useLeads';
 import { useUsers } from '../../hooks/useUsers';
 import { getInitials } from '../../utils/helpers';
+import SearchableSelect from '../../components/common/SearchableSelect';
 
 const LeadEdit = () => {
   const { id } = useParams();
@@ -404,42 +405,28 @@ const LeadEdit = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Status */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Status
-                </label>
-                <select
-                  name="status"
+                <SearchableSelect
+                  label="Status"
+                  options={statusOptions}
                   value={formData.status}
-                  onChange={handleChange}
-                  className="input"
-                >
-                  <option value="">Select status</option>
-                  {statusOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                  showAvatar={false}
+                  allowEmpty={true}
+                  emptyText="Select status"
+                />
               </div>
 
               {/* Priority */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Priority
-                </label>
-                <select
-                  name="priority"
+                <SearchableSelect
+                  label="Priority"
+                  options={priorityOptions}
                   value={formData.priority}
-                  onChange={handleChange}
-                  className="input"
-                >
-                  <option value="">Select priority</option>
-                  {priorityOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
+                  showAvatar={false}
+                  allowEmpty={true}
+                  emptyText="Select priority"
+                />
               </div>
 
               {/* Estimated Value */}
@@ -512,66 +499,15 @@ const LeadEdit = () => {
 
               {/* Assigned To */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Assign To
-                </label>
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() => setShowUserDropdown(!showUserDropdown)}
-                    className="input w-full text-left flex items-center gap-3"
-                  >
-                    {selectedUser ? (
-                      <>
-                        <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium text-sm flex-shrink-0">
-                          {getInitials(selectedUser.name)}
-                        </div>
-                        <span className="text-gray-900 dark:text-white flex-1">
-                          {selectedUser.name}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Users className="w-5 h-5 text-gray-400" />
-                        <span className="text-gray-500 flex-1">Select user</span>
-                      </>
-                    )}
-                    <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                  </button>
-                  
-                  {showUserDropdown && (
-                    <div className="absolute z-50 mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-auto">
-                      <div
-                        onClick={() => {
-                          setFormData(prev => ({ ...prev, assigned_to: '' }));
-                          setShowUserDropdown(false);
-                        }}
-                        className="px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex items-center gap-3"
-                      >
-                        <Users className="w-5 h-5 text-gray-400" />
-                        <span className="text-gray-500">Unassigned</span>
-                      </div>
-                      {users.map(user => (
-                        <div
-                          key={user.id}
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, assigned_to: user.id }));
-                            setShowUserDropdown(false);
-                          }}
-                          className="px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex items-center gap-3"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium text-sm">
-                            {getInitials(user.name)}
-                          </div>
-                          <span className="text-gray-900 dark:text-white flex-1">{user.name}</span>
-                          {formData.assigned_to === user.id && (
-                            <Check className="w-5 h-5 text-primary-600" />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <SearchableSelect
+                  label="Assign To"
+                  options={users}
+                  value={formData.assigned_to}
+                  onChange={(value) => setFormData(prev => ({ ...prev, assigned_to: value }))}
+                  placeholder="Select user"
+                  emptyText="Unassigned"
+                  showAvatar={true}
+                />
               </div>
             </div>
           </div>

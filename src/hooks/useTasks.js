@@ -6,7 +6,11 @@ export const useTasks = (params = {}) => {
   return useQuery({
     queryKey: ['tasks', params],
     queryFn: () => taskService.getTasks(params),
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    cacheTime: 1000 * 60 * 15, // 15 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   })
 }
 

@@ -33,13 +33,13 @@ export const taskService = {
 
   // Mark task complete
   completeTask: async (id) => {
-    const response = await apiClient.post(`/tasks/${id}/complete`)
+    const response = await apiClient.patch(`/tasks/${id}/complete`)
     return response.data
   },
 
   // Assign task
   assignTask: async (id, userId) => {
-    const response = await apiClient.post(`/tasks/${id}/assign`, { user_id: userId })
+    const response = await apiClient.put(`/tasks/${id}`, { assigned_to: userId })
     return response.data
   },
 

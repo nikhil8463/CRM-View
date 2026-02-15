@@ -16,9 +16,13 @@ import {
   Clock,
   TrendingUp,
   Plus,
-  Loader2
+  Loader2,
+  Send,
+  CheckSquare
 } from 'lucide-react'
 import CommunicationTimeline from '../../components/communications/CommunicationTimeline'
+import LogCommunicationModal from '../../components/modals/LogCommunicationModal'
+import AddTaskModal from '../../components/modals/AddTaskModal'
 import { useLead, useLeadTimeline, useUpdateLead, useUpdateLeadStatus, useAssignLead, useDeleteLead } from '@/hooks/useLeads'
 import { useUsers } from '@/hooks/useUsers'
 import toast from 'react-hot-toast'
@@ -28,6 +32,9 @@ export default function LeadDetail() {
   const navigate = useNavigate()
   const [editingStatus, setEditingStatus] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState(false)
+  const [showLogCommModal, setShowLogCommModal] = useState(false)
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false)
+  const [selectedCommType, setSelectedCommType] = useState('call')
   
   // Fetch lead data from backend
   const { data: leadData, isLoading, error } = useLead(id)
@@ -405,6 +412,137 @@ export default function LeadDetail() {
         </div>
       </div>
       
+      {/* Quick Actions Bar */}
+      <div className="card">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-900">Quick Actions</h3>
+          <div className="flex items-center gap-2">
+            {/* Call Button */}
+            <button 
+              onClick={() => {
+                setSelectedCommType('call');
+                setShowLogCommModal(true);
+              }}
+              className="btn btn-outline btn-sm gap-2"
+              title="Log a call"
+            >
+              <Phone className="w-4 h-4" />
+              Call
+            </button>
+            
+            {/* Email Button */}
+            <button 
+              onClick={() => {
+                setSelectedCommType('email');
+                setShowLogCommModal(true);
+              }}
+              className="btn btn-outline btn-sm gap-2"
+              title="Log an email"
+            >
+              <Mail className="w-4 h-4" />
+              Email
+            </button>
+            
+            {/* SMS Button */}
+            <button 
+              onClick={() => {
+                setSelectedCommType('sms');
+                setShowLogCommModal(true);
+              }}
+              className="btn btn-outline btn-sm gap-2"
+              title="Log SMS"
+            >
+              <MessageSquare className="w-4 h-4" />
+              SMS
+            </button>
+            
+            {/* WhatsApp Button */}
+            <button
+              onClick={() => {
+                setSelectedCommType('whatsapp');
+                setShowLogCommModal(true);
+              }}
+              className="btn btn-outline btn-sm gap-2"
+              title="Log WhatsApp"
+            >
+              <Send className="w-4 h-4" />
+              WhatsApp
+            </button>
+            
+            {/* Add Task Button */}
+            <button 
+              onClick={() => setShowAddTaskModal(true)}
+              className="btn btn-primary btn-sm gap-2"
+              title="Create task"
+            >
+              <CheckSquare className="w-4 h-4" />
+              Add Task
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Activity Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Total Communications */}
+        <div className="card hover:shadow-lg transition-shadow">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm text-slate-500 font-medium mb-1">Communications</p>
+              <p className="text-2xl font-bold text-slate-900">{communications.length}</p>
+            </div>
+            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-primary-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Calls */}
+        <div className="card hover:shadow-lg transition-shadow">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm text-slate-500 font-medium mb-1">Calls</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {communications.filter(c => c.type === 'CALL').length}
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-success-100 rounded-lg flex items-center justify-center">
+              <Phone className="w-5 h-5 text-success-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Emails */}
+        <div className="card hover:shadow-lg transition-shadow">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm text-slate-500 font-medium mb-1">Emails</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {communications.filter(c => c.type === 'EMAIL').length}
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+              <Mail className="w-5 h-5 text-indigo-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Tasks */}
+        <div className="card hover:shadow-lg transition-shadow">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm text-slate-500 font-medium mb-1">Open Tasks</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {timeline?.tasks?.filter(t => t.status !== 'completed').length || 0}
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-warning-100 rounded-lg flex items-center justify-center">
+              <CheckSquare className="w-5 h-5 text-warning-600" />
+            </div>
+          </div>
+        </div>
+      </div>
+      
       {/* Main Content - Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Lead Details */}
@@ -543,7 +681,13 @@ export default function LeadDetail() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="section-title">Communication Timeline</h2>
               <div className="flex items-center gap-2">
-                <button className="btn btn-primary btn-sm">
+                <button 
+                  className="btn btn-primary btn-sm"
+                  onClick={() => {
+                    setSelectedCommType('call');
+                    setShowLogCommModal(true);
+                  }}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Log Activity
                 </button>
@@ -554,6 +698,22 @@ export default function LeadDetail() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <LogCommunicationModal
+        isOpen={showLogCommModal}
+        onClose={() => setShowLogCommModal(false)}
+        leadId={id}
+        campaignId={lead?.campaign_id}
+        defaultType={selectedCommType}
+      />
+
+      <AddTaskModal
+        isOpen={showAddTaskModal}
+        onClose={() => setShowAddTaskModal(false)}
+        leadId={id}
+        campaignId={lead?.campaign_id}
+      />
     </div>
   )
 }

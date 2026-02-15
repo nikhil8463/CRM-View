@@ -6,6 +6,7 @@ import { taskService } from '../../services/taskService';
 import { leadService } from '../../services/leadService';
 import { useUsers } from '../../hooks/useUsers';
 import { getInitials } from '../../utils/helpers';
+import SearchableSelect from '../../components/common/SearchableSelect';
 
 const TaskCreate = () => {
   const navigate = useNavigate();
@@ -141,57 +142,40 @@ const TaskCreate = () => {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Task Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Lead <span className="text-red-500">*</span></label>
-                <div className="relative" ref={leadDropdownRef}>
-                  <button type="button" onClick={() => setShowLeadDropdown(!showLeadDropdown)} className={`input w-full text-left flex items-center justify-between ${errors.lead_id ? 'input-error' : ''}`}>
-                    <span className={selectedLead ? 'text-gray-900 dark:text-white' : 'text-gray-500'}>{selectedLead ? selectedLead.name : 'Select lead'}</span>
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
-                  </button>
-                  {showLeadDropdown && (
-                    <div className="absolute z-50 mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-auto">
-                      {leads.map(lead => (
-                        <div key={lead.id} onClick={() => { setFormData(prev => ({ ...prev, lead_id: lead.id })); setShowLeadDropdown(false); if (errors.lead_id) setErrors(prev => ({ ...prev, lead_id: undefined })); }} className="px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex items-center justify-between">
-                          <div>
-                            <span className="text-gray-900 dark:text-white">{lead.name}</span>
-                            {lead.company && <p className="text-xs text-gray-500">{lead.company}</p>}
-                          </div>
-                          {formData.lead_id === lead.id && <Check className="w-5 h-5 text-primary-600" />}
-                        </div>
-                      ))}
+                <SearchableSelect
+                  label="Lead"
+                  options={leads}
+                  value={formData.lead_id}
+                  onChange={(value) => {
+                    setFormData(prev => ({ ...prev, lead_id: value }))
+                    if (errors.lead_id) setErrors(prev => ({ ...prev, lead_id: undefined }))
+                  }}
+                  placeholder="Select lead"
+                  required={true}
+                  showAvatar={false}
+                  renderOption={(lead) => (
+                    <div>
+                      <div className="text-sm font-medium text-slate-900">{lead.name}</div>
+                      {lead.company && <div className="text-xs text-slate-500">{lead.company}</div>}
                     </div>
                   )}
-                </div>
+                />
                 {errors.lead_id && <p className="mt-1 text-sm text-red-500">{errors.lead_id[0]}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Assign To <span className="text-red-500">*</span></label>
-                <div className="relative" ref={dropdownRef}>
-                  <button type="button" onClick={() => setShowUserDropdown(!showUserDropdown)} className={`input w-full text-left flex items-center justify-between ${errors.assigned_to ? 'input-error' : ''}`}>
-                    {selectedUser ? (
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium text-sm flex-shrink-0">{getInitials(selectedUser.name)}</div>
-                        <span className="text-gray-900 dark:text-white">{selectedUser.name}</span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-500">Select user</span>
-                    )}
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
-                  </button>
-                  {showUserDropdown && (
-                    <div className="absolute z-50 mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-auto">
-                      {users.map(user => (
-                        <div key={user.id} onClick={() => { setFormData(prev => ({ ...prev, assigned_to: user.id })); setShowUserDropdown(false); if (errors.assigned_to) setErrors(prev => ({ ...prev, assigned_to: undefined })); }} className="px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium text-sm">{getInitials(user.name)}</div>
-                            <span className="text-gray-900 dark:text-white">{user.name}</span>
-                          </div>
-                          {formData.assigned_to === user.id && <Check className="w-5 h-5 text-primary-600" />}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <SearchableSelect
+                  label="Assign To"
+                  options={users}
+                  value={formData.assigned_to}
+                  onChange={(value) => {
+                    setFormData(prev => ({ ...prev, assigned_to: value }))
+                    if (errors.assigned_to) setErrors(prev => ({ ...prev, assigned_to: undefined }))
+                  }}
+                  placeholder="Select user"
+                  required={true}
+                  showAvatar={true}
+                />
                 {errors.assigned_to && <p className="mt-1 text-sm text-red-500">{errors.assigned_to[0]}</p>}
               </div>
 

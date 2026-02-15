@@ -19,6 +19,12 @@ export const integrationService = {
     return response.data
   },
 
+  // Toggle integration active status
+  toggle: async (type, isActive) => {
+    const response = await apiClient.patch(`/integrations/${type}/toggle`, { is_active: isActive })
+    return response.data
+  },
+
   // Test integration connection
   testConnection: async (type) => {
     const response = await apiClient.post(`/integrations/${type}/test`)

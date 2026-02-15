@@ -74,11 +74,7 @@ export const leadService = {
   },
 
   // Import leads
-  importLeads: async (file, campaignId) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('campaign_id', campaignId)
-    
+  importLeads: async (formData) => {
     const response = await apiClient.post('/leads/import', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })

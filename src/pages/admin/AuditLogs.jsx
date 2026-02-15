@@ -78,14 +78,19 @@ export default function AuditLogs() {
   
   // Apply filters
   const filteredLogs = auditLogs.filter(log => {
-    const matchesSearch = log.record_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          log.user.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesModel = modelFilter === 'all' || log.model === modelFilter
-    const matchesUser = userFilter === 'all' || log.user === userFilter
+    // Safely extract model type from auditable_type (e.g., "App\\Models\\Lead" -> "Lead")
+    const modelType = log.auditable_type ? log.auditable_type.split('\\').pop() : ''
+    const userName = log.user?.name || log.user?.email || ''
+    
+    const matchesSearch = modelType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (log.auditable_id && log.auditable_id.toString().includes(searchQuery))
+    const matchesModel = modelFilter === 'all' || modelType === modelFilter
+    const matchesUser = userFilter === 'all' || userName === userFilter
     
     let matchesDate = true
     if (dateRange !== 'all') {
-      const logDate = new Date(log.timestamp)
+      const logDate = new Date(log.created_at)
       const today = new Date()
       const diffDays = Math.floor((today - logDate) / (1000 * 60 * 60 * 24))
       
@@ -321,30 +326,32 @@ export default function AuditLogs() {
                           <User className="w-4 h-4 text-primary-600" />
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-slate-900">{log.user}</div>
-                          <div className="text-xs text-slate-500">{log.ip_address}</div>
+                          <div className="text-sm font-medium text-slate-900">{log.user?.name || log.user?.email || 'Unknown'}</div>
+                          <div className="text-xs text-slate-500">{log.ip_address || 'N/A'}</div>
                         </div>
                       </div>
                     </td>
                     <td className="p-4">
                       <span className="badge bg-slate-100 text-slate-700">
                         <FileText className="w-4 h-4 mr-1" />
-                        {log.model}
+                        {log.auditable_type ? log.auditable_type.split('\\').pop() : 'Unknown'}
                       </span>
                     </td>
                     <td className="p-4">
                       <div>
-                        <div className="text-sm font-medium text-slate-900">{log.record_name}</div>
-                        <div className="text-xs text-slate-500">ID: {log.model_id}</div>
+                        <div className="text-sm font-medium text-slate-900">
+                          {log.auditable_type ? log.auditable_type.split('\\').pop() : 'Unknown'}
+                        </div>
+                        <div className="text-xs text-slate-500">ID: {log.auditable_id || 'N/A'}</div>
                       </div>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2 text-sm text-slate-900">
                         <Clock className="w-4 h-4 text-slate-400" />
-                        {new Date(log.timestamp).toLocaleDateString()}
+                        {new Date(log.created_at).toLocaleDateString()}
                       </div>
                       <div className="text-xs text-slate-500 mt-1">
-                        {new Date(log.timestamp).toLocaleTimeString()}
+                        {new Date(log.created_at).toLocaleTimeString()}
                       </div>
                     </td>
                   </tr>
@@ -358,51 +365,71 @@ export default function AuditLogs() {
                             <FileText className="w-4 h-4" />
                             Changes Details
                           </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {Object.entries(log.changes).map(([field, values]) => (
-                              <div key={field} className="bg-white rounded-lg p-4 border border-slate-200">
-                                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                                  {field.replace(/_/g, ' ')}
-                                </div>
-                                
-                                <div className="space-y-3">
-                                  {/* Before */}
-                                  <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <XCircle className="w-4 h-4 text-danger-500" />
-                                      <span className="text-xs font-semibold text-slate-600">Before</span>
-                                    </div>
-                                    <div className={`p-3 rounded-lg ${
-                                      values.before === null 
-                                        ? 'bg-slate-100 text-slate-400 italic' 
-                                        : 'bg-danger-50 text-danger-900'
-                                    }`}>
-                                      <code className="text-sm">
-                                        {values.before === null ? 'null' : String(values.before)}
-                                      </code>
-                                    </div>
+                          
+                          {/* Show old and new values if they exist */}
+                          {(log.old_values || log.new_values) ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {/* Get all unique keys from both old and new values */}
+                              {Array.from(new Set([
+                                ...Object.keys(log.old_values || {}),
+                                ...Object.keys(log.new_values || {})
+                              ])).map(field => (
+                                <div key={field} className="bg-white rounded-lg p-4 border border-slate-200">
+                                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                                    {field.replace(/_/g, ' ')}
                                   </div>
                                   
-                                  {/* After */}
-                                  <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <CheckCircle className="w-4 h-4 text-success-500" />
-                                      <span className="text-xs font-semibold text-slate-600">After</span>
+                                  <div className="space-y-3">
+                                    {/* Before */}
+                                    <div>
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <XCircle className="w-4 h-4 text-danger-500" />
+                                        <span className="text-xs font-semibold text-slate-600">Before</span>
+                                      </div>
+                                      <div className={`p-3 rounded-lg ${
+                                        !log.old_values || log.old_values[field] === null || log.old_values[field] === undefined
+                                          ? 'bg-slate-100 text-slate-400 italic' 
+                                          : 'bg-danger-50 text-danger-900'
+                                      }`}>
+                                        <code className="text-sm">
+                                          {!log.old_values || log.old_values[field] === null || log.old_values[field] === undefined
+                                            ? 'null' 
+                                            : typeof log.old_values[field] === 'object'
+                                              ? JSON.stringify(log.old_values[field], null, 2)
+                                              : String(log.old_values[field])}
+                                        </code>
+                                      </div>
                                     </div>
-                                    <div className={`p-3 rounded-lg ${
-                                      values.after === null 
-                                        ? 'bg-slate-100 text-slate-400 italic' 
-                                        : 'bg-success-50 text-success-900'
-                                    }`}>
-                                      <code className="text-sm">
-                                        {values.after === null ? 'null' : String(values.after)}
-                                      </code>
+                                    
+                                    {/* After */}
+                                    <div>
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <CheckCircle className="w-4 h-4 text-success-500" />
+                                        <span className="text-xs font-semibold text-slate-600">After</span>
+                                      </div>
+                                      <div className={`p-3 rounded-lg ${
+                                        !log.new_values || log.new_values[field] === null || log.new_values[field] === undefined
+                                          ? 'bg-slate-100 text-slate-400 italic' 
+                                          : 'bg-success-50 text-success-900'
+                                      }`}>
+                                        <code className="text-sm">
+                                          {!log.new_values || log.new_values[field] === null || log.new_values[field] === undefined
+                                            ? 'null' 
+                                            : typeof log.new_values[field] === 'object'
+                                              ? JSON.stringify(log.new_values[field], null, 2)
+                                              : String(log.new_values[field])}
+                                        </code>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 text-slate-500">
+                              <p>No change details available for this action</p>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>

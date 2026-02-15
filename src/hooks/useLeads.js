@@ -6,7 +6,8 @@ export const useLeads = (params = {}) => {
   return useQuery({
     queryKey: ['leads', params],
     queryFn: () => leadService.getLeads(params),
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    cacheTime: 1000 * 60 * 10, // 10 minutes
   })
 }
 
@@ -15,6 +16,7 @@ export const useLead = (id) => {
     queryKey: ['lead', id],
     queryFn: () => leadService.getLead(id),
     enabled: !!id,
+    staleTime: 1000 * 60 * 3, // 3 minutes
   })
 }
 
@@ -23,6 +25,7 @@ export const useLeadTimeline = (id) => {
     queryKey: ['lead-timeline', id],
     queryFn: () => leadService.getLeadTimeline(id),
     enabled: !!id,
+    staleTime: 1000 * 60 * 2, // 2 minutes
   })
 }
 
@@ -100,6 +103,22 @@ export const useAssignLead = () => {
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to assign lead')
+    },
+  })
+}
+
+export const useImportLeads = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: leadService.importLeads,
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
+      const message = response?.message || `Successfully imported ${response?.imported || 0} leads`
+      toast.success(message)
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to import leads')
     },
   })
 }

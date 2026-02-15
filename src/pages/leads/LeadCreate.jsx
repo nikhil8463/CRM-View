@@ -22,6 +22,7 @@ import { leadService } from '../../services/leadService';
 import { campaignService } from '../../services/campaignService';
 import { useUsers } from '../../hooks/useUsers';
 import { getInitials } from '../../utils/helpers';
+import SearchableSelect from '../../components/common/SearchableSelect';
 
 const LeadCreate = () => {
   const navigate = useNavigate();
@@ -374,26 +375,20 @@ const LeadCreate = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Source */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Source <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <select
-                    name="source"
-                    value={formData.source}
-                    onChange={handleChange}
-                    className={errors.source ? 'input-error pl-10' : 'input pl-10'}
-                    required
-                  >
-                    <option value="">Select source</option>
-                    {sourceOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SearchableSelect
+                  label={
+                    <>
+                      Source <span className="text-red-500">*</span>
+                    </>
+                  }
+                  options={sourceOptions}
+                  value={formData.source}
+                  onChange={(value) => setFormData(prev => ({ ...prev, source: value }))}
+                  showAvatar={false}
+                  allowEmpty={true}
+                  emptyText="Select source"
+                  required
+                />
                 {errors.source && (
                   <p className="mt-1 text-sm text-red-500">{errors.source[0]}</p>
                 )}
@@ -401,40 +396,26 @@ const LeadCreate = () => {
 
               {/* Status */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Status
-                </label>
-                <select
-                  name="status"
+                <SearchableSelect
+                  label="Status"
+                  options={statusOptions}
                   value={formData.status}
-                  onChange={handleChange}
-                  className="input"
-                >
-                  {statusOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                  showAvatar={false}
+                  allowEmpty={false}
+                />
               </div>
 
               {/* Priority */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Priority
-                </label>
-                <select
-                  name="priority"
+                <SearchableSelect
+                  label="Priority"
+                  options={priorityOptions}
                   value={formData.priority}
-                  onChange={handleChange}
-                  className="input"
-                >
-                  {priorityOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
+                  showAvatar={false}
+                  allowEmpty={false}
+                />
               </div>
 
               {/* Estimated Value */}

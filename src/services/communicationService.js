@@ -48,6 +48,12 @@ export const communicationService = {
     const response = await apiClient.post('/communications/ai-suggest', context)
     return response.data
   },
+
+  // Create communication log
+  createLog: async (data) => {
+    const response = await apiClient.post('/communication-logs', data)
+    return response.data
+  },
 }
 
 export default communicationService

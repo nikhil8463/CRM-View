@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
   Plus, 
@@ -12,9 +12,18 @@ import {
   Calendar,
   Sparkles,
   ChevronDown,
-  Loader2
+  Loader2,
+  Mail,
+  MoreVertical,
+  TrendingUp,
+  Target,
+  UserCheck,
+  AlertCircle
 } from 'lucide-react'
 import { useLeads, useUpdateLeadStatus, useAssignLead, useDeleteLead } from '@/hooks/useLeads'
+import AddLeadModal from '@/components/modals/AddLeadModal'
+import LogCommunicationModal from '@/components/modals/LogCommunicationModal'
+import AddTaskModal from '@/components/modals/AddTaskModal'
 import toast from 'react-hot-toast'
 
 export default function Leads() {
@@ -27,6 +36,12 @@ export default function Leads() {
   const [showFilters, setShowFilters] = useState(false)
   const [selectedLeads, setSelectedLeads] = useState([])
   const [showBulkActions, setShowBulkActions] = useState(false)
+  const [showAddLeadModal, setShowAddLeadModal] = useState(false)
+  const [showLogCommModal, setShowLogCommModal] = useState(false)
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false)
+  const [selectedLeadId, setSelectedLeadId] = useState(null)
+  const [showActionsMenu, setShowActionsMenu] = useState(null)
+  const [selectedCommType, setSelectedCommType] = useState('call')
   
   // Fetch leads from backend with React Query
   const { data: leadsData, isLoading, error } = useLeads({
@@ -43,9 +58,15 @@ export default function Leads() {
   // Extract leads from response - Laravel returns {leads: [...], total: X}
   const leads = leadsData?.leads || leadsData?.data || []
   
-  // Extract unique values for filters
-  const campaigns = [...new Set(leads.map(l => l.campaign?.name).filter(Boolean))]
-  const users = [...new Set(leads.map(l => l.assigned_user?.name).filter(Boolean))]
+  // Extract unique values for filters - Memoized to prevent re-calculation
+  const campaigns = useMemo(() => 
+    [...new Set(leads.map(l => l.campaign?.name).filter(Boolean))],
+    [leads]
+  )
+  const users = useMemo(() => 
+    [...new Set(leads.map(l => l.assigned_user?.name).filter(Boolean))],
+    [leads]
+  )
   
   // Status badge styles
   const statusStyles = {
@@ -76,16 +97,18 @@ export default function Leads() {
     return 'bg-slate-100'
   }
   
-  // Filter leads
-  const filteredLeads = leads.filter(lead => {
-    const matchesSearch = lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          lead.company.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCampaign = campaignFilter === 'all' || lead.campaign === campaignFilter
-    const matchesStatus = statusFilter === 'all' || lead.status === statusFilter
-    const matchesAssigned = assignedFilter === 'all' || lead.assigned_to === assignedFilter
-    const matchesPriority = priorityFilter === 'all' || lead.priority === priorityFilter
-    return matchesSearch && matchesCampaign && matchesStatus && matchesAssigned && matchesPriority
-  })
+  // Filter leads - Memoized to prevent re-filtering on every render
+  const filteredLeads = useMemo(() => {
+    return leads.filter(lead => {
+      const matchesSearch = lead.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            lead.company?.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesCampaign = campaignFilter === 'all' || lead.campaign === campaignFilter
+      const matchesStatus = statusFilter === 'all' || lead.status === statusFilter
+      const matchesAssigned = assignedFilter === 'all' || lead.assigned_to === assignedFilter
+      const matchesPriority = priorityFilter === 'all' || lead.priority === priorityFilter
+      return matchesSearch && matchesCampaign && matchesStatus && matchesAssigned && matchesPriority
+    })
+  }, [leads, searchQuery, campaignFilter, statusFilter, assignedFilter, priorityFilter])
   
   const handleSelectAll = (e) => {
     if (e.target.checked) {
@@ -109,6 +132,24 @@ export default function Leads() {
     setShowBulkActions(false)
     setSelectedLeads([])
   }
+
+  // Calculate statistics - Memoized for performance
+  const stats = useMemo(() => ({
+    total: leads.length,
+    new: leads.filter(l => l.status === 'new').length,
+    contacted: leads.filter(l => l.status === 'contacted').length,
+    qualified: leads.filter(l => l.status === 'qualified').length,
+    converted: leads.filter(l => l.status === 'converted').length,
+    highPriority: leads.filter(l => l.priority === 'high').length,
+    avgAiScore: leads.length > 0 
+      ? Math.round(leads.reduce((sum, l) => sum + (l.ai_score || 0), 0) / leads.length)
+      : 0,
+  }), [leads])
+
+  const conversionRate = useMemo(() => 
+    stats.total > 0 ? ((stats.converted / stats.total) * 100).toFixed(1) : 0,
+    [stats.total, stats.converted]
+  )
   
   return (
     <div className="space-y-6">
@@ -124,12 +165,104 @@ export default function Leads() {
             Export
           </button>
           <button 
-            onClick={() => navigate('/dashboard/leads/create')}
+            onClick={() => setShowAddLeadModal(true)}
             className="btn btn-primary"
           >
             <Plus className="w-5 h-5 mr-2" />
             New Lead
           </button>
+        </div>
+      </div>
+      
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Leads */}
+        <div className="card hover:shadow-lg transition-shadow">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm text-slate-500 font-medium mb-1">Total Leads</p>
+              <p className="text-3xl font-bold text-slate-900 mb-2">{stats.total}</p>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 text-xs text-success-600 bg-success-50 px-2 py-0.5 rounded-full font-medium">
+                  <TrendingUp className="w-3 h-3" />
+                  {stats.new} New
+                </span>
+                <span className="text-xs text-slate-500">
+                  {stats.highPriority} High Priority
+                </span>
+              </div>
+            </div>
+            <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30">
+              <UsersIcon className="w-6 h-6 text-white" />
+            </div>
+          </div>
+        </div>
+
+        {/* Qualified Leads */}
+        <div className="card hover:shadow-lg transition-shadow">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm text-slate-500 font-medium mb-1">Qualified</p>
+              <p className="text-3xl font-bold text-slate-900 mb-2">{stats.qualified}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500">
+                  {stats.contacted} Contacted
+                </span>
+              </div>
+            </div>
+            <div className="w-12 h-12 bg-gradient-to-br from-success-500 to-success-600 rounded-xl flex items-center justify-center shadow-lg shadow-success-500/30">
+              <Target className="w-6 h-6 text-white" />
+            </div>
+          </div>
+        </div>
+
+        {/* Conversion Rate */}
+        <div className="card hover:shadow-lg transition-shadow">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm text-slate-500 font-medium mb-1">Conversion Rate</p>
+              <p className="text-3xl font-bold text-slate-900 mb-2">{conversionRate}%</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500">
+                  {stats.converted} Converted
+                </span>
+              </div>
+            </div>
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+              <UserCheck className="w-6 h-6 text-white" />
+            </div>
+          </div>
+        </div>
+
+        {/* AI Score */}
+        <div className="card hover:shadow-lg transition-shadow">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm text-slate-500 font-medium mb-1">Avg AI Score</p>
+              <p className="text-3xl font-bold text-slate-900 mb-2">{stats.avgAiScore}</p>
+              <div className="flex items-center gap-1">
+                {stats.avgAiScore >= 80 ? (
+                  <span className="text-xs text-success-600 flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3" />
+                    Excellent
+                  </span>
+                ) : stats.avgAiScore >= 60 ? (
+                  <span className="text-xs text-warning-600 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Good
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-500 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Needs Work
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/30">
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+          </div>
         </div>
       </div>
       
@@ -312,13 +445,14 @@ export default function Leads() {
                 <th className="text-left p-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Source</th>
                 <th className="text-left p-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">AI Score</th>
                 <th className="text-left p-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Created</th>
+                <th className="text-left p-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {/* Loading State */}
               {isLoading && (
                 <tr>
-                  <td colSpan="9" className="p-8 text-center">
+                  <td colSpan="10" className="p-8 text-center">
                     <Loader2 className="w-8 h-8 text-primary-600 animate-spin mx-auto" />
                   </td>
                 </tr>
@@ -327,7 +461,7 @@ export default function Leads() {
               {/* Error State */}
               {error && (
                 <tr>
-                  <td colSpan="9" className="p-8">
+                  <td colSpan="10" className="p-8">
                     <div className="text-center text-danger-700">
                       Failed to load leads. Please try again.
                     </div>
@@ -391,6 +525,42 @@ export default function Leads() {
                       {new Date(lead.created_at).toLocaleDateString()}
                     </div>
                   </td>
+                  <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setSelectedLeadId(lead.id);
+                          setSelectedCommType('call');
+                          setShowLogCommModal(true);
+                        }}
+                        className="p-2 hover:bg-primary-50 rounded-lg transition-colors text-primary-600"
+                        title="Log call"
+                      >
+                        <Phone className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedLeadId(lead.id);
+                          setSelectedCommType('email');
+                          setShowLogCommModal(true);
+                        }}
+                        className="p-2 hover:bg-primary-50 rounded-lg transition-colors text-primary-600"
+                        title="Log email"
+                      >
+                        <Mail className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedLeadId(lead.id);
+                          setShowAddTaskModal(true);
+                        }}
+                        className="p-2 hover:bg-primary-50 rounded-lg transition-colors text-primary-600"
+                        title="Add task"
+                      >
+                        <CheckSquare className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -425,6 +595,31 @@ export default function Leads() {
           </div>
         </div>
       )}
+
+      {/* Modals */}
+      <AddLeadModal
+        isOpen={showAddLeadModal}
+        onClose={() => setShowAddLeadModal(false)}
+      />
+
+      <LogCommunicationModal
+        isOpen={showLogCommModal}
+        onClose={() => {
+          setShowLogCommModal(false);
+          setSelectedLeadId(null);
+        }}
+        leadId={selectedLeadId}
+        defaultType={selectedCommType}
+      />
+
+      <AddTaskModal
+        isOpen={showAddTaskModal}
+        onClose={() => {
+          setShowAddTaskModal(false);
+          setSelectedLeadId(null);
+        }}
+        leadId={selectedLeadId}
+      />
     </div>
   )
 }

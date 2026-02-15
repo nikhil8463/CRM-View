@@ -21,6 +21,7 @@ import { useUsers } from '@/hooks/useUsers'
 import campaignService from '@/services/campaignService'
 import { getInitials } from '@/utils/helpers'
 import toast from 'react-hot-toast'
+import SearchableSelect from '@/components/common/SearchableSelect'
 
 export default function CampaignCreate() {
   const navigate = useNavigate()
@@ -29,7 +30,7 @@ export default function CampaignCreate() {
   
   const [formData, setFormData] = useState({
     name: '',
-    channel: 'Email',
+    channels: [], // Changed to array for multiselect
     status: 'planned',
     description: '',
     start_date: '',
@@ -85,8 +86,8 @@ export default function CampaignCreate() {
       newErrors.name = 'Campaign name is required'
     }
 
-    if (!formData.channel) {
-      newErrors.channel = 'Channel is required'
+    if (!formData.channels || formData.channels.length === 0) {
+      newErrors.channels = 'At least one channel is required'
     }
 
     if (formData.budget && isNaN(parseFloat(formData.budget))) {
@@ -118,7 +119,7 @@ export default function CampaignCreate() {
     // Prepare data for API
     const campaignData = {
       name: formData.name.trim(),
-      channel: formData.channel,
+      channels: formData.channels,
       status: formData.status,
       description: formData.description.trim() || null,
       start_date: formData.start_date || null,
@@ -193,30 +194,47 @@ export default function CampaignCreate() {
               )}
             </div>
 
-            {/* Channel */}
+            {/* Channels - Multiselect */}
             <div className="mb-4">
-              <label htmlFor="channel" className="block text-sm font-medium text-slate-700 mb-2">
-                Channel <span className="text-danger-500">*</span>
+              <label htmlFor="channels" className="block text-sm font-medium text-slate-700 mb-2">
+                Channels <span className="text-danger-500">*</span>
+                <span className="text-slate-500 text-xs ml-2">(Select one or more)</span>
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {channelOptions.map((option) => {
                   const IconComponent = option.icon
+                  const isSelected = formData.channels.includes(option.value)
                   return (
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => handleChange({ target: { name: 'channel', value: option.value } })}
-                      className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
-                        formData.channel === option.value
+                      onClick={() => {
+                        // Toggle channel selection
+                        const newChannels = isSelected
+                          ? formData.channels.filter(ch => ch !== option.value)
+                          : [...formData.channels, option.value]
+                        setFormData(prev => ({ ...prev, channels: newChannels }))
+                        // Clear error when user selects a channel
+                        if (errors.channels && newChannels.length > 0) {
+                          setErrors(prev => ({ ...prev, channels: '' }))
+                        }
+                      }}
+                      className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 relative ${
+                        isSelected
                           ? 'border-primary-500 bg-primary-50'
                           : 'border-slate-200 hover:border-slate-300'
                       }`}
                     >
+                      {isSelected && (
+                        <div className="absolute top-2 right-2">
+                          <Check className="w-4 h-4 text-primary-600" />
+                        </div>
+                      )}
                       <IconComponent className={`w-6 h-6 ${
-                        formData.channel === option.value ? 'text-primary-600' : 'text-slate-400'
+                        isSelected ? 'text-primary-600' : 'text-slate-400'
                       }`} />
                       <span className={`text-sm font-medium ${
-                        formData.channel === option.value ? 'text-primary-900' : 'text-slate-700'
+                        isSelected ? 'text-primary-900' : 'text-slate-700'
                       }`}>
                         {option.label}
                       </span>
@@ -224,29 +242,37 @@ export default function CampaignCreate() {
                   )
                 })}
               </div>
-              {errors.channel && (
-                <p className="mt-1 text-sm text-danger-600">{errors.channel}</p>
+              {errors.channels && (
+                <p className="mt-1 text-sm text-danger-600">{errors.channels}</p>
+              )}
+              {formData.channels.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="text-sm text-slate-600">Selected:</span>
+                  {formData.channels.map(ch => {
+                    const option = channelOptions.find(opt => opt.value === ch)
+                    return (
+                      <span 
+                        key={ch}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium"
+                      >
+                        {option?.label || ch}
+                      </span>
+                    )
+                  })}
+                </div>
               )}
             </div>
 
             {/* Status */}
             <div className="mb-4">
-              <label htmlFor="status" className="block text-sm font-medium text-slate-700 mb-2">
-                Status
-              </label>
-              <select
-                id="status"
-                name="status"
+              <SearchableSelect
+                label="Status"
+                options={statusOptions}
                 value={formData.status}
-                onChange={handleChange}
-                className="input"
-              >
-                {statusOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                showAvatar={false}
+                allowEmpty={false}
+              />
             </div>
 
             {/* Assign To */}

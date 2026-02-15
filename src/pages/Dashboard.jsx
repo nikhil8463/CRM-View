@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { 
   TrendingUp, 
   Users, 
@@ -31,16 +32,19 @@ export default function Dashboard() {
   // Check admin status using utility function
   const userIsAdmin = isAdmin(user)
   
+  // Memoize today's date to prevent creating new query keys on every render
+  const today = useMemo(() => new Date().toISOString().split('T')[0], [])
+  
   // Fetch real data from backend with automatic cache invalidation
   const { data: leadsData, isLoading: leadsLoading } = useLeads({ assigned_to: userIsAdmin ? undefined : user?.id })
   const { data: campaignsData, isLoading: campaignsLoading } = useCampaigns({ status: userIsAdmin ? undefined : 'active' })
   const { data: callsData, isLoading: callsLoading } = useCalls({ 
-    date_from: new Date().toISOString().split('T')[0], // Today's calls
-    date_to: new Date().toISOString().split('T')[0]
+    date_from: today, // Today's calls
+    date_to: today
   })
   const { data: tasksData, isLoading: tasksLoading } = useTasks({ 
     assigned_to: userIsAdmin ? undefined : user?.id,
-    due_date: new Date().toISOString().split('T')[0] // Today's tasks
+    due_date: today // Today's tasks
   })
   const { data: overdueTasksData, isLoading: overdueLoading } = useOverdueTasks()
   
