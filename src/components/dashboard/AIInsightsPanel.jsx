@@ -1,53 +1,89 @@
-import { Sparkles, TrendingUp, AlertCircle, Target, Brain } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Sparkles, TrendingUp, AlertCircle, Target, Brain, Loader2 } from 'lucide-react'
+import apiClient from '@/services/apiClient'
 
 /**
  * AI Insights Panel Component
  * Shows AI-powered recommendations and alerts for admins
  */
 export default function AIInsightsPanel() {
-  // Mock data - replace with actual API call
-  const insights = {
-    followUps: [
-      {
-        lead: 'John Smith - Acme Corp',
-        reason: 'High engagement score (87), last contact 3 days ago',
-        priority: 'high',
-        action: 'Schedule demo call'
-      },
-      {
-        lead: 'Sarah Johnson - Tech Inc',
-        reason: 'Viewed pricing page 5 times this week',
-        priority: 'high',
-        action: 'Send pricing proposal'
-      },
-      {
-        lead: 'Mike Davis - Global Ltd',
-        reason: 'Email opened but no response for 7 days',
-        priority: 'medium',
-        action: 'Send follow-up email'
-      },
-    ],
-    alerts: [
-      {
-        type: 'warning',
-        campaign: 'Q1 Enterprise Campaign',
-        message: 'Conversion rate dropped 12% this week',
-        action: 'Review targeting'
-      },
-      {
-        type: 'success',
-        campaign: 'SMB Outreach Campaign',
-        message: 'Response rate up 28% after AI optimization',
-        action: 'Scale up budget'
-      },
-    ],
-    leadScoring: [
-      { range: '80-100', label: 'Hot', count: 143, color: 'bg-danger-500', percentage: 23 },
-      { range: '60-79', label: 'Warm', count: 287, color: 'bg-warning-500', percentage: 46 },
-      { range: '40-59', label: 'Cool', count: 156, color: 'bg-primary-500', percentage: 25 },
-      { range: '0-39', label: 'Cold', count: 37, color: 'bg-slate-400', percentage: 6 },
-    ]
+  const [loading, setLoading] = useState(true)
+  const [insights, setInsights] = useState(null)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    fetchAIInsights()
+  }, [])
+
+  const fetchAIInsights = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Fetch lead distribution from AI service
+      const response = await apiClient.get('/ai/insights/lead-distribution')
+      
+      if (response.data.success) {
+        setInsights(response.data)
+      }
+    } catch (err) {
+      console.error('Error fetching AI insights:', err)
+      setError('Unable to load AI insights')
+    } finally {
+      setLoading(false)
+    }
   }
+
+  if (loading) {
+    return (
+      <div className="card">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="card">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-ai-600 to-primary-600 flex items-center justify-center">
+            <Brain className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="section-title">AI Insights</h3>
+            <p className="text-xs text-slate-500">Powered by LangChain</p>
+          </div>
+        </div>
+        <div className="text-center py-8">
+          <AlertCircle className="w-8 h-8 text-warning-500 mx-auto mb-2" />
+          <p className="text-sm text-slate-600">{error}</p>
+          <button 
+            onClick={fetchAIInsights}
+            className="mt-3 text-sm text-primary-600 hover:text-primary-700 font-medium"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const distribution = insights?.distribution || {}
+  const leadScoring = [
+    { range: '80-100', label: 'Hot (A)', count: distribution.tier_a || 0, tier: 'a', color: 'bg-danger-500' },
+    { range: '60-79', label: 'Warm (B)', count: distribution.tier_b || 0, tier: 'b', color: 'bg-warning-500' },
+    { range: '40-59', label: 'Cool (C)', count: distribution.tier_c || 0, tier: 'c', color: 'bg-primary-500' },
+    { range: '0-39', label: 'Cold (D)', count: distribution.tier_d || 0, tier: 'd', color: 'bg-slate-400' },
+  ]
+
+  const totalLeads = leadScoring.reduce((sum, item) => sum + item.count, 0)
+  
+  // Calculate percentages
+  leadScoring.forEach(item => {
+    item.percentage = totalLeads > 0 ? Math.round((item.count / totalLeads) * 100) : 0
+  })
   
   return (
     <div className="card">
@@ -56,109 +92,89 @@ export default function AIInsightsPanel() {
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-ai-600 to-primary-600 flex items-center justify-center">
           <Brain className="w-5 h-5 text-white" />
         </div>
-        <div>
+        <div className="flex-1">
           <h3 className="section-title">AI Insights</h3>
-          <p className="text-xs text-slate-500">Powered by LangChain</p>
+          <p className="text-xs text-slate-500">Powered by LangChain & OpenAI</p>
         </div>
-      </div>
-      
-      {/* Recommended Follow-ups */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Target className="w-4 h-4 text-primary-600" />
-          <h4 className="text-sm font-semibold text-slate-900">Recommended Follow-ups</h4>
-        </div>
-        <div className="space-y-3">
-          {insights.followUps.map((followUp, index) => (
-            <div key={index} className="p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="text-sm font-medium text-slate-900 flex-1">{followUp.lead}</div>
-                <span className={`
-                  text-xs px-2 py-1 rounded-lg font-medium
-                  ${followUp.priority === 'high' ? 'bg-danger-100 text-danger-700' : 'bg-warning-100 text-warning-700'}
-                `}>
-                  {followUp.priority === 'high' ? 'High' : 'Medium'}
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 mb-2">{followUp.reason}</p>
-              <button className="text-xs font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1">
-                <Sparkles className="w-3 h-3" />
-                {followUp.action}
-              </button>
-            </div>
-          ))}
-        </div>
-        <button className="mt-3 w-full text-sm text-primary-600 hover:text-primary-700 font-medium">
-          View all recommendations →
+        <button 
+          onClick={fetchAIInsights}
+          className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+        >
+          Refresh
         </button>
-      </div>
-      
-      {/* Campaign Performance Alerts */}
-      <div className="mb-6 pb-6 border-b border-slate-200">
-        <div className="flex items-center gap-2 mb-3">
-          <AlertCircle className="w-4 h-4 text-warning-600" />
-          <h4 className="text-sm font-semibold text-slate-900">Campaign Alerts</h4>
-        </div>
-        <div className="space-y-3">
-          {insights.alerts.map((alert, index) => (
-            <div 
-              key={index} 
-              className={`
-                p-3 rounded-xl border-l-4
-                ${alert.type === 'warning' 
-                  ? 'bg-warning-50 border-warning-500' 
-                  : 'bg-success-50 border-success-500'
-                }
-              `}
-            >
-              <div className="text-sm font-medium text-slate-900 mb-1">{alert.campaign}</div>
-              <p className="text-xs text-slate-600 mb-2">{alert.message}</p>
-              <button className={`
-                text-xs font-medium flex items-center gap-1
-                ${alert.type === 'warning' ? 'text-warning-700' : 'text-success-700'}
-              `}>
-                {alert.action} →
-              </button>
-            </div>
-          ))}
-        </div>
       </div>
       
       {/* Lead Scoring Distribution */}
       <div>
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-4 h-4 text-success-600" />
-          <h4 className="text-sm font-semibold text-slate-900">Lead Score Distribution</h4>
+          <h4 className="text-sm font-semibold text-slate-900">AI Lead Score Distribution</h4>
         </div>
         
-        {/* Horizontal Bar Chart */}
-        <div className="mb-4">
-          <div className="flex h-8 rounded-xl overflow-hidden">
-            {insights.leadScoring.map((score) => (
-              <div
-                key={score.range}
-                className={`${score.color} flex items-center justify-center text-xs font-medium text-white`}
-                style={{ width: `${score.percentage}%` }}
-                title={`${score.label}: ${score.count} leads`}
-              >
-                {score.percentage > 15 && score.count}
-              </div>
-            ))}
+        {totalLeads === 0 ? (
+          <div className="text-center py-8">
+            <Brain className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="text-sm text-slate-500">No leads have been scored yet</p>
+            <p className="text-xs text-slate-400 mt-1">AI will automatically score new leads</p>
           </div>
-        </div>
-        
-        {/* Legend */}
-        <div className="grid grid-cols-2 gap-2">
-          {insights.leadScoring.map((score) => (
-            <div key={score.range} className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded ${score.color}`} />
-              <div className="flex-1">
-                <div className="text-xs font-medium text-slate-900">{score.label}</div>
-                <div className="text-xs text-slate-500">{score.count} leads</div>
+        ) : (
+          <>
+            {/* Horizontal Bar Chart */}
+            <div className="mb-4">
+              <div className="flex h-10 rounded-xl overflow-hidden shadow-sm">
+                {leadScoring.filter(s => s.count > 0).map((score) => (
+                  <div
+                    key={score.range}
+                    className={`${score.color} flex items-center justify-center text-xs font-semibold text-white transition-all hover:opacity-90 cursor-pointer`}
+                    style={{ width: `${score.percentage}%` }}
+                    title={`${score.label}: ${score.count} leads (${score.percentage}%)`}
+                  >
+                    {score.percentage > 8 && (
+                      <span className="px-2">{score.count}</span>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+            
+            {/* Legend */}
+            <div className="grid grid-cols-2 gap-3">
+              {leadScoring.map((score) => (
+                <div key={score.range} className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                  <div className={`w-4 h-4 rounded ${score.color} shadow-sm`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-slate-900">{score.label}</div>
+                    <div className="text-xs text-slate-500">
+                      {score.count} leads ({score.percentage}%)
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Summary Stats */}
+            <div className="mt-4 pt-4 border-t border-slate-200">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-slate-900">{totalLeads}</div>
+                  <div className="text-xs text-slate-500">Total Scored</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-danger-600">
+                    {distribution.tier_a || 0}
+                  </div>
+                  <div className="text-xs text-slate-500">Hot Leads</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-primary-600">
+                    {insights?.average_score ? Math.round(insights.average_score) : 0}
+                  </div>
+                  <div className="text-xs text-slate-500">Avg Score</div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
       
       {/* AI Status Footer */}
@@ -168,7 +184,9 @@ export default function AIInsightsPanel() {
             <div className="w-2 h-2 rounded-full bg-success-600 animate-pulse" />
             <span>AI Analysis Active</span>
           </div>
-          <span className="text-slate-500">Updated 2 min ago</span>
+          <span className="text-slate-500">
+            {insights?.updated_at ? `Updated ${new Date(insights.updated_at).toLocaleTimeString()}` : 'Just now'}
+          </span>
         </div>
       </div>
     </div>
