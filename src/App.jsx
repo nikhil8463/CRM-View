@@ -3,6 +3,9 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { Loader2 } from 'lucide-react'
 
+// Components
+import AuthValidator from '@/components/AuthValidator'
+
 // Layouts
 import AuthLayout from '@/layouts/AuthLayout'
 import DashboardLayout from '@/layouts/DashboardLayout'
@@ -66,10 +69,11 @@ function App() {
   const { isAuthenticated } = useAuthStore()
   
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
+    <AuthValidator>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
         
         <Route path="/" element={<AuthLayout />}>
           <Route path="login" element={
@@ -164,6 +168,7 @@ function App() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Suspense>
+    </AuthValidator>
   )
 }
 

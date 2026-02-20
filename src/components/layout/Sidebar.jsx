@@ -80,7 +80,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 <Zap className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">AI CRM</h1>
+                <h1 className="text-xl font-bold text-white">Tech Verta</h1>
                 <p className="text-xs text-slate-400">Enterprise</p>
               </div>
             </Link>

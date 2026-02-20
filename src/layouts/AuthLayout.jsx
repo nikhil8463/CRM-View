@@ -13,7 +13,7 @@ export default function AuthLayout() {
                 <Sparkles className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">AI CRM</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Tech Verta</h1>
                 <p className="text-xs text-gray-600">Intelligent Lead Management</p>
               </div>
             </div>
